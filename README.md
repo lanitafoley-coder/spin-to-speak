@@ -37,7 +37,7 @@ Built for multilingual, first-generation, and apprehensive speakers. Works as a 
 
 This tool was built using a faculty-centered, privacy-conscious workflow. The instructor defined the pedagogical logic — the prompts, the structure, the learning purpose. AI was used only for the mechanical assembly of the HTML scaffold. Student data never enters a proprietary system.
 
-This approach is described in full in the accompanying conference paper presented at the International Communication Association (ICA) Annual Conference, 2026.
+This approach is described in full during a presentation at the International Communication Association (ICA) Annual Conference, 2026.
 
 ---
 
