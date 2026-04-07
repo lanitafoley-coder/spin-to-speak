@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speaking Prompts Topic Spinner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-a: #5b67e0; --bg-b: #7a3fb9;
+      --glass: rgba(255,255,255,0.10); --glass-2: rgba(255,255,255,0.18);
+      --text-color: #fff; --text-size: 1;
+    }
+    body.high-contrast { --bg-a: #000; --bg-b: #1a1a1a; --glass: rgba(255,255,255,0.25); --glass-2: rgba(255,255,255,0.45); }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    body.no-motion *, body.no-motion *::before, body.no-motion *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      min-height: 100vh; display: grid; place-items: center; padding: 24px; color: var(--text-color);
+      background: radial-gradient(1200px 800px at 10% 10%, #8aa2ff22, transparent 60%),
+                  radial-gradient(1000px 600px at 90% 20%, #ff79c622, transparent 60%),
+                  linear-gradient(135deg, var(--bg-a) 0%, var(--bg-b) 100%);
+    }
+    .container { width: min(100%, 980px); text-align: center; }
+    h1 { font-size: clamp(2rem, 2.5vw + 1.4rem, 3rem); letter-spacing: 0.3px; text-shadow: 0 6px 26px #00000050; }
+    .subtitle { opacity: 0.9; margin-top: 6px; margin-bottom: 18px; }
+
+    .card { position:relative; background: var(--glass); border: 1px solid var(--glass-2); backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 18px; box-shadow: 0 20px 60px #00000040; }
+    .card::after{ content:""; position:absolute; inset:0; border-radius:inherit; background: var(--flash-color, transparent); 
+                  opacity:0; pointer-events:none; transition: opacity .6s ease; mix-blend-mode: soft-light; }
+    .card.flash::after{ opacity:.85; }
+
+    .stage { display: grid; place-items: center; margin: 22px auto; }
+    .wheel-wrap { position: relative; width: clamp(280px, 45vw, 460px); aspect-ratio: 1; }
+
+    .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 30; }
+    .pointer::before { content: ""; display: block; width: 0; height: 0; 
+                       border-left: 16px solid transparent; border-right: 16px solid transparent; 
+                       border-top: 30px solid #fff; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
+
+    .glow-ring { position: absolute; inset: -14px; border-radius: 50%; pointer-events: none;
+      background: conic-gradient(from 90deg, #ff6b6b 0deg 72deg, #4ecdc4 72deg 144deg, 
+                  #45b7d1 144deg 216deg, #96ceb4 216deg 288deg, #ffeaa7 288deg 360deg);
+      filter: blur(18px) saturate(1.3); opacity: .55; }
+
+    .wheel { position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+      border: 10px solid #fff; box-shadow: inset 0 0 0 6px rgba(255,255,255,.25), 0 16px 40px #00000055;
+      transition: transform 3.2s cubic-bezier(.12,.66,.08,1);
+      background: conic-gradient(from 90deg, #ff6b6b 0deg 72deg, #4ecdc4 72deg 144deg, 
+                  #45b7d1 144deg 216deg, #96ceb4 216deg 288deg, #ffeaa7 288deg 360deg);
+    }
+    .ticks { position: absolute; inset: 10px; border-radius: 50%; pointer-events: none;
+      background: 
+        linear-gradient(90deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%),
+        linear-gradient(162deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%),
+        linear-gradient(234deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%),
+        linear-gradient(306deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%),
+        linear-gradient(378deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%);
+    }
+
+    .a11y-toolbar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; 
+                    padding: 10px; background: rgba(0,0,0,.2); border-radius: 12px; }
+    .a11y-btn { background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.3); 
+                padding: 8px 14px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all .2s; }
+    .a11y-btn:hover { background: rgba(255,255,255,.25); transform: translateY(-1px); }
+    .a11y-btn.active { background: rgba(255,255,255,.35); border-color: rgba(255,255,255,.6); }
+    .a11y-btn:focus { outline: 3px solid #ffeaa7; outline-offset: 2px; }
+
+    .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0 6px; }
+    .btn { background: linear-gradient(45deg, #ff6b6b, #ee5a52); color: white; border: none; padding: 12px 22px; 
+           font-size: 1.05rem; font-weight: 800; border-radius: 999px; cursor: pointer; 
+           box-shadow: 0 10px 24px rgba(0,0,0,.35); transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(0,0,0,.4); filter: brightness(1.06); }
+    .btn:focus { outline: 3px solid #ffeaa7; outline-offset: 3px; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+    .btn.secondary { background: linear-gradient(45deg, #4ecdc4, #3aa896); }
+    .btn.ghost { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.4); }
+    .btn.tts { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+
+    .timer { margin-top: 10px; display: grid; place-items: center; }
+    .ring { width: 120px; height: 120px; position: relative; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; 
+                 font-size: calc(1.25rem * var(--text-size)); color: #ffeaa7; text-shadow: 0 2px 6px #00000066; }
+
+    .badge { display:inline-block; padding:6px 14px; border-radius: 999px; font-weight: 900; 
+             font-size: calc(.9rem * var(--text-size)); margin-bottom: 10px; }
+    .personal{ background:#ff6b6b; } .media{ background:#4ecdc4; } .campus{ background:#45b7d1; }
+    .twists{ background:#96ceb4; } .bonus{ background:#ffeaa7; color:#333; }
+    .prompt { font-size: calc(clamp(1.1rem, 1vw + 1rem, 1.45rem) * var(--text-size)); line-height: 1.45; }
+
+    .i18n-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+    .select{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.35); 
+             background: rgba(255,255,255,.15); color:#fff; }
+    .select:focus { outline: 3px solid #ffeaa7; outline-offset: 2px; }
+    .note{ font-size: calc(.85rem * var(--text-size)); opacity:.9; margin-top:6px; }
+    .translation{ margin-top:12px; text-align:left; }
+    .translation .hdr{ display:flex; justify-content:space-between; margin-bottom:6px; font-weight:800; }
+
+    .confetti { position: fixed; top: -8px; width: 10px; height: 14px; opacity: .95; transform: translateY(-100px); will-change: transform; }
+    @keyframes drop { to { transform: translateY(110vh) rotate(720deg); } }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; 
+               clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width:600px){ .wheel-wrap{ width: 320px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Speaking Prompts Spinner</h1>
+    <p class="subtitle">Spin for a prompt, add a skill focus, and translate for multilingual practice.</p>
+
+    <div class="a11y-toolbar" role="toolbar" aria-label="Accessibility options">
+      <button class="a11y-btn" id="contrastBtn" onclick="toggleContrast()" aria-pressed="false">🌗 High Contrast</button>
+      <button class="a11y-btn" id="motionBtn" onclick="toggleMotion()" aria-pressed="false">⏸️ Reduce Motion</button>
+      <button class="a11y-btn" onclick="adjustTextSize(-0.1)" aria-label="Decrease text size">A−</button>
+      <button class="a11y-btn" onclick="adjustTextSize(0.1)" aria-label="Increase text size">A+</button>
+      <button class="a11y-btn" onclick="adjustSpeechRate(-0.1)" aria-label="Slower speech">🐢 Slower</button>
+      <button class="a11y-btn" onclick="adjustSpeechRate(0.1)" aria-label="Faster speech">🐇 Faster</button>
+      <select id="voiceSelect" class="a11y-btn" aria-label="Select voice" style="padding:8px 10px; cursor:pointer;">
+        <option value="">🎙️ Auto Voice</option>
+      </select>
+    </div>
+
+    <div class="stage">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <div class="glow-ring" aria-hidden="true"></div>
+        <div class="wheel" id="wheel" role="img" aria-label="Prize wheel with 5 categories"></div>
+        <div class="ticks" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="spinBtn" onclick="spinWheel()" accesskey="s">SPIN <span class="sr-only">(Press S or Space)</span></button>
+      <button class="btn secondary" id="skillBtn" onclick="spinSkillFocus()" style="display:none;" accesskey="k">SKILL FOCUS</button>
+      <button class="btn tts" id="ttsBtn" onclick="toggleSpeech()" style="display:none;" accesskey="r">🔊 READ ALOUD</button>
+    </div>
+
+    <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="card" id="resultCard">
+      <div id="resultContent">
+        <div class="prompt" id="resultPrompt">Click SPIN to get your speaking prompt.</div>
+      </div>
+    </div>
+
+    <div class="timer" id="timerControls" style="display:none;">
+      <div class="controls" style="margin-bottom:6px;">
+        <button class="btn ghost" onclick="startTimer(30)">30 sec</button>
+        <button class="btn ghost" onclick="startTimer(60)">1 min</button>
+        <button class="btn ghost" onclick="startTimer(120)">2 min</button>
+      </div>
+      <div class="ring">
+        <svg width="120" height="120">
+          <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.22)" stroke-width="10" fill="none"></circle>
+          <circle id="timerArc" cx="60" cy="60" r="52" stroke="#ffeaa7" stroke-width="10" stroke-linecap="round" 
+                  fill="none" stroke-dasharray="327" stroke-dashoffset="327"></circle>
+        </svg>
+        <div class="num" id="timerDisplay">0s</div>
+      </div>
+    </div>
+
+    <div class="i18n-row" id="i18nControls" style="display:none;">
+      <select id="langSelect" class="select" aria-label="Select language">
+        <option value="es">🇪🇸 Spanish</option>
+        <option value="fr">🇫🇷 French</option>
+      </select>
+      <button class="btn ghost" id="translateBtn">TRANSLATE</button>
+      <button class="btn ghost" id="copyBtn" onclick="copyTranslation()" style="display:none;">COPY</button>
+    </div>
+    <div class="note" id="i18nNote" style="display:none;">Translations use a public API with caching and fallback.</div>
+
+    <div class="card translation" id="translationBox" style="display:none;">
+      <div class="hdr"><span>Translation</span><span id="translationMeta" class="note"></span></div>
+      <div id="translatedCategory" class="note" style="margin-bottom:6px;"></div>
+      <div id="translatedSkill" class="note" style="margin-bottom:6px;"></div>
+      <div id="translatedText" class="prompt"></div>
+    </div>
+
+    <details style="margin-top:12px;">
+      <summary class="note">Advanced translation settings</summary>
+      <div class="i18n-row" style="margin-top:8px;">
+        <input id="endpointInput" class="select" placeholder="LibreTranslate endpoint" />
+        <input id="apiKeyInput" class="select" placeholder="API key (optional)" />
+      </div>
+    </details>
+  </div>
+
+<script>
+  const prompts = {
+    personal: ["If your life were turned into a TV show, what would the title be and why?","Convince us that your favorite snack deserves its own national holiday.","Which fictional character would make the best roommate at Emerson, and why?","Argue for or against pineapple on pizza (but do it as if you are a lawyer).","Give a 1-minute acceptance speech for a made-up award you just won."],
+    media: ["Defend an unpopular opinion about a recent film, show, or album.","Pitch a new reality show based on Emerson student life.","If TikTok disappeared tomorrow, what would fill the cultural void?","Which meme best describes life as a college student right now?","Convince the class why one viral trend should stay (or go)."],
+    campus: ["What is the most underrated spot in Boston or on Emerson's campus?","Convince a new student why Emerson is (or is not) the perfect place for creatives.","If you could add one quirky class to the curriculum, what would it be?","What is the most valuable thing you have learned outside of class so far?"],
+    twists: ["Sell us an everyday object (like a stapler or umbrella) as if it were revolutionary.","Pretend you are an alien describing human college life to your planet.","Pick a random word from the dictionary and explain why it is the most powerful word ever.","Argue why your least favorite chore is actually the best.","Convince us that your morning routine is worthy of a Netflix documentary."],
+    bonus: ["Create your own prompt and convince us it is the most interesting question ever asked!","Choose any prompt from the handout that you have not done yet.","Instructor gets to pick your topic. Prepare for anything."]
+  };
+
+  const skillFocus = ["Eye contact. Look at three people during your response.","Structure. Use clear First, Second, Finally organization.","Vocal variety. Emphasize key words with pace and tone.","Credibility. Hold eye contact for complete thoughts for three to five seconds.","Leadership. Guide the audience step by step.","Engagement. Match your voice to your content.","Connection. Make each listener feel you are speaking to them.","Clarity. Organize so your audience can follow your thinking.","Emphasis. Let your voice highlight what matters most.","Confidence. Combine eye contact, structure, and vocal variety."];
+
+  const categories = ['personal','media','campus','twists','bonus'];
+  const categoryNames = { personal:'Personal & Playful', media:'Pop Culture & Media', campus:'Campus & Community', twists:'Twists & Challenges', bonus:"Instructor's Choice" };
+  const categoryColors = { personal:'#ff6b6b', media:'#4ecdc4', campus:'#45b7d1', twists:'#96ceb4', bonus:'#ffeaa7' };
+
+  let isSpinning = false, timerInterval, currentPrompt = null, speechRate = 0.9, isSpeaking = false;
+  const translationCache = new Map();
+  let availableVoices = [];
+  let selectedVoice = null;
+
+  // Load voices when available
+  function loadVoices() {
+    availableVoices = window.speechSynthesis.getVoices();
+    const voiceSelect = document.getElementById('voiceSelect');
+    
+    // Filter for high-quality English voices
+    const goodVoices = availableVoices.filter(v => 
+      v.lang.startsWith('en') && 
+      (v.name.includes('Google') || v.name.includes('Samantha') || 
+       v.name.includes('Alex') || v.name.includes('Premium') || 
+       v.name.includes('Enhanced') || v.name.includes('Natural'))
+    );
+    
+    // Add all English voices as options
+    const englishVoices = goodVoices.length > 0 ? goodVoices : availableVoices.filter(v => v.lang.startsWith('en'));
+    
+    englishVoices.forEach(voice => {
+      const option = document.createElement('option');
+      option.value = voice.name;
+      option.textContent = `${voice.name} (${voice.lang})`;
+      voiceSelect.appendChild(option);
+    });
+    
+    // Auto-select best voice
+    if (goodVoices.length > 0) {
+      selectedVoice = goodVoices[0];
+      voiceSelect.value = goodVoices[0].name;
+    }
+  }
+
+  // Load voices on page load and when they change
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+  loadVoices();
+
+  // Voice selection handler
+  document.getElementById('voiceSelect').addEventListener('change', (e) => {
+    const voiceName = e.target.value;
+    selectedVoice = availableVoices.find(v => v.name === voiceName) || null;
+    announce('Voice changed to ' + (voiceName || 'auto'));
+  });
+
+  function toggleContrast() { document.body.classList.toggle('high-contrast'); const btn = document.getElementById('contrastBtn'); const isActive = document.body.classList.contains('high-contrast'); btn.classList.toggle('active', isActive); btn.setAttribute('aria-pressed', isActive); announce('High contrast ' + (isActive ? 'on' : 'off')); }
+  function toggleMotion() { document.body.classList.toggle('no-motion'); const btn = document.getElementById('motionBtn'); const isActive = document.body.classList.contains('no-motion'); btn.classList.toggle('active', isActive); btn.setAttribute('aria-pressed', isActive); announce('Reduced motion ' + (isActive ? 'on' : 'off')); }
+  function adjustTextSize(d) { const root = document.documentElement; const cur = parseFloat(getComputedStyle(root).getPropertyValue('--text-size')) || 1; const newSize = Math.max(0.8, Math.min(1.5, cur + d)); root.style.setProperty('--text-size', newSize); announce('Text ' + (d > 0 ? 'larger' : 'smaller')); }
+  function adjustSpeechRate(d) { speechRate = Math.max(0.5, Math.min(1.5, speechRate + d)); announce('Speech ' + (d > 0 ? 'faster' : 'slower')); }
+  function announce(msg) { document.getElementById('liveRegion').textContent = msg; }
+
+  document.addEventListener('keydown', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; if (e.key === ' ' || e.key === 'Enter') { if (e.target.tagName !== 'BUTTON') { e.preventDefault(); const spinBtn = document.getElementById('spinBtn'); if (!spinBtn.disabled) spinWheel(); } } });
+
+  function toggleSpeech() { if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking = false; document.getElementById('ttsBtn').textContent = '🔊 READ ALOUD'; announce('Speech stopped'); } else { readAloud(); } }
+
+  function readAloud() { 
+    if (!currentPrompt) return; 
+    window.speechSynthesis.cancel(); 
+    const ttsBtn = document.getElementById('ttsBtn'); 
+    ttsBtn.textContent = '⏹️ STOP'; 
+    isSpeaking = true; 
+    
+    // Build more natural text with better pauses
+    let txt = `Category: ${categoryNames[currentPrompt.category]}. `; 
+    if (currentPrompt.challenge) {
+      txt += `Skill Focus: ${currentPrompt.challenge}. `; 
+    }
+    txt += `Your prompt is: ${currentPrompt.prompt}`;
+    
+    const u = new SpeechSynthesisUtterance(txt); 
+    
+    // Use selected voice or find best available
+    if (selectedVoice) {
+      u.voice = selectedVoice;
+    } else {
+      // Try to find a good default voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => 
+        v.lang.startsWith('en') && 
+        (v.name.includes('Google') || v.name.includes('Samantha') || 
+         v.name.includes('Premium') || v.name.includes('Enhanced'))
+      );
+      if (preferred) u.voice = preferred;
+    }
+    
+    u.rate = speechRate; 
+    u.pitch = 1.0;  // Natural pitch
+    u.volume = 1.0; 
+    
+    u.onend = () => { 
+      ttsBtn.textContent = '🔊 READ ALOUD'; 
+      isSpeaking = false; 
+    }; 
+    
+    u.onerror = () => { 
+      ttsBtn.textContent = '🔊 READ ALOUD'; 
+      isSpeaking = false; 
+    }; 
+    
+    window.speechSynthesis.speak(u); 
+  }
+
+  function spinWheel(){ if(isSpinning) return; window.speechSynthesis.cancel(); isSpeaking = false; isSpinning = true; const wheel = document.getElementById('wheel'), spinBtn = document.getElementById('spinBtn'), skillBtn = document.getElementById('skillBtn'), ttsBtn = document.getElementById('ttsBtn'), timerControls = document.getElementById('timerControls'), i18nControls = document.getElementById('i18nControls'), i18nNote = document.getElementById('i18nNote'), translationBox = document.getElementById('translationBox'), resultPrompt = document.getElementById('resultPrompt'); spinBtn.disabled = true; spinBtn.textContent = 'SPINNING…'; skillBtn.style.display = 'none'; ttsBtn.style.display = 'none'; timerControls.style.display = 'none'; i18nControls.style.display = 'none'; i18nNote.style.display = 'none'; translationBox.style.display = 'none'; resultPrompt.textContent = 'Spinning…'; announce('Spinning'); const idx = Math.floor(Math.random() * 5); const angle = 270 - (idx * 72 + 36); const total = 1800 + angle; wheel.style.transform = `rotate(${total}deg)`; setTimeout(()=>{ const cat = categories[idx]; const list = prompts[cat]; const pmt = list[Math.floor(Math.random()*list.length)]; currentPrompt = { category: cat, prompt: pmt, challenge: null }; revealResult(); confettiBurst(); skillBtn.style.display = 'inline-block'; ttsBtn.style.display = 'inline-block'; ttsBtn.textContent = '🔊 READ ALOUD'; timerControls.style.display = 'grid'; i18nControls.style.display = 'flex'; i18nNote.style.display = 'block'; spinBtn.disabled = false; spinBtn.textContent = 'SPIN AGAIN'; isSpinning = false; announce(`${categoryNames[cat]}. ${pmt}`); setTimeout(() => readAloud(), 500); }, 3200); }
+
+  function revealResult(){ const resultCard = document.getElementById('resultCard'), resultPrompt = document.getElementById('resultPrompt'), color = categoryColors[currentPrompt.category]; resultCard.style.setProperty('--flash-color', hexToRgba(color, 0.45)); resultCard.classList.add('flash'); setTimeout(()=>{ resultCard.classList.remove('flash'); }, 700); resultPrompt.innerHTML = `<span class="badge ${currentPrompt.category}">${categoryNames[currentPrompt.category]}</span><br>${currentPrompt.prompt}`; }
+
+  function spinSkillFocus(){ if(!currentPrompt) return; window.speechSynthesis.cancel(); isSpeaking = false; const s = skillFocus[Math.floor(Math.random()*skillFocus.length)]; currentPrompt.challenge = s; document.getElementById('resultPrompt').innerHTML = `<span class="badge ${currentPrompt.category}">${categoryNames[currentPrompt.category]}</span><div class="note" style="margin:8px 0 10px; background: rgba(255,255,255,.14); padding:8px 10px; border-radius:12px;">🎯 <strong>Skill Focus:</strong> ${s}</div>${currentPrompt.prompt}`; document.getElementById('translationBox').style.display='none'; document.getElementById('copyBtn').style.display='none'; announce(`Skill: ${s}`); setTimeout(() => readAloud(), 300); }
+
+  function startTimer(sec){ clearInterval(timerInterval); const arc = document.getElementById('timerArc'), disp = document.getElementById('timerDisplay'), CIRC = 2*Math.PI*52; let left = sec; arc.style.strokeDasharray = CIRC; arc.style.strokeDashoffset = CIRC; disp.textContent = fmt(left); announce(`Timer ${sec}s`); const start = Date.now(); timerInterval = setInterval(()=>{ const elapsed = Math.min(sec, (Date.now()-start)/1000); left = Math.max(0, Math.ceil(sec - elapsed)); arc.style.strokeDashoffset = CIRC - (elapsed/sec)*CIRC; disp.textContent = left>0?fmt(left):"TIME UP"; if(left<=0){ clearInterval(timerInterval); announce("Time up"); } }, 100); }
+  function fmt(s){ const m = Math.floor(s/60), x = s%60; return m>0?`${m}:${String(x).padStart(2,'0')}`:`${x}s`; }
+
+  document.getElementById('translateBtn').onclick = debounce(translateCurrent, 800);
+  function debounce(fn, ms=800){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+  function lsGet(k){ try{return JSON.parse(localStorage.getItem(k));}catch{return null;} }
+  function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+  function getEndpoint(){ return document.getElementById('endpointInput').value.trim() || 'https://libretranslate.com'; }
+  function getApiKey(){ return document.getElementById('apiKeyInput').value.trim(); }
+
+  async function translateWithLibre(text, target){ const endpoint = getEndpoint().replace(/\/$/, ''); const body = { q: text, source: 'auto', target, format: 'text' }; const apiKey = getApiKey(); if(apiKey) body.api_key = apiKey; const res = await fetch(`${endpoint}/translate`, { method:'POST', mode:'cors', headers:{ 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify(body) }); if(!res.ok) throw new Error('Libre fail'); const data = await res.json(); return data.translatedText || ''; }
+  async function translateWithMyMemory(text, target){ const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${target}`; const res = await fetch(url,{headers:{'Accept':'application/json'}}); if(!res.ok) throw new Error('MyMemory fail'); const data = await res.json(); return data?.responseData?.translatedText || ''; }
+  async function translateText(text, target){ const key = `${target}::${text}`; const cached = lsGet(key) || translationCache.get(key); if(cached) return cached; let out=''; try{ out = await translateWithLibre(text,target);}catch{ try{ out = await translateWithMyMemory(text,target);}catch{ out=''; } } translationCache.set(key,out); if(out) lsSet(key,out); return out; }
+
+  async function translateCurrent(){ if(!currentPrompt) return; const lang = document.getElementById('langSelect').value, box = document.getElementById('translationBox'), meta = document.getElementById('translationMeta'), elText = document.getElementById('translatedText'), elCat = document.getElementById('translatedCategory'), elSkill = document.getElementById('translatedSkill'); box.style.display='block'; elText.textContent='Translating…'; document.getElementById('copyBtn').style.display='none'; const [tPrompt,tCat,tSkill] = await Promise.all([ translateText(currentPrompt.prompt, lang), translateText(categoryNames[currentPrompt.category], lang), currentPrompt.challenge? translateText(currentPrompt.challenge, lang) : Promise.resolve('') ]); const fail = (!tPrompt || tPrompt === currentPrompt.prompt); elText.textContent = tPrompt || currentPrompt.prompt; elText.setAttribute('lang', lang); elCat.textContent = tCat? `Category: ${tCat}` : `Category: ${categoryNames[currentPrompt.category]}`; elCat.setAttribute('lang', lang); elSkill.textContent = tSkill ? `Skill: ${tSkill}` : (currentPrompt.challenge? `Skill: ${currentPrompt.challenge}` : ''); elSkill.style.display = elSkill.textContent? 'block':'none'; meta.textContent = `${lang==='es'?'Spanish':'French'}${fail?' • English fallback':''}`; document.getElementById('copyBtn').style.display='inline-block'; }
+
+  async function copyTranslation(){ const text = document.getElementById('translatedText').textContent; try{ await navigator.clipboard.writeText(text); const b=document.getElementById('copyBtn'), old=b.textContent; b.textContent='COPIED'; setTimeout(()=>b.textContent=old, 1000);}catch{ alert('Copy failed'); } }
+
+  function confettiBurst(n=24){ for(let i=0;i<n;i++){ const c=document.createElement('div'); c.className='confetti'; c.style.left = Math.random()*100+'vw'; c.style.background = `hsl(${Math.random()*360},90%,60%)`; c.style.animation = `drop ${1.2+Math.random()*1.8}s cubic-bezier(.2,.6,.2,1) forwards`; c.style.transform = `translateY(-100px) rotate(${Math.random()*360}deg)`; c.style.borderRadius = Math.random()>.5? '2px':'50%'; c.style.zIndex=999; document.body.appendChild(c); setTimeout(()=>c.remove(), 2600); } }
+
+  function hexToRgba(hex, alpha=1){ const c = hex.replace('#',''); const bigint = parseInt(c.length===3 ? c.split('').map(x=>x+x).join('') : c, 16); const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255; return `rgba(${r}, ${g}, ${b}, ${alpha})`; }
+</script>
+</body>
+</html>
